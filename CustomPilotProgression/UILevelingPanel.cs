@@ -186,6 +186,7 @@ namespace CustomPilotProgression {
           levelItem.backgroundColor.OverrideWithColor(Core.settings.levelNotSelectedBackColor);
           levelItem.EquipmentTooltip.SetDefaultStateData(TooltipUtilities.GetStateDataFromObject(level_tooltip));
           instance.levels_ui[level] = new UILevel(levelItem);
+          if(level.LevelDef.AbilityDefs == null) { level.LevelDef.ForceRefreshAbilityDefs(); }
           foreach(var ability in level.LevelDef.AbilityDefs) {
             GameObject abilityGO = LazySingletonBehavior<UIManager>.Instance.dataManager.PooledInstantiate("uixPrfPanl_LC_MechLoadoutItem", BattleTechResourceType.UIModulePrefabs);
             abilityGO.SetActive(false);

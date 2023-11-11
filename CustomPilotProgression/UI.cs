@@ -107,6 +107,7 @@ namespace CustomPilotProgression {
             description += $"/-";
           }
           description += $"\n - __/CPP.ABILITIES/__:";
+          if(levelDef.LevelDef.AbilityDefs == null) { levelDef.LevelDef.ForceRefreshAbilityDefs(); }
           foreach(var ability in levelDef.LevelDef.AbilityDefs) {
 //            if(UnityGameInstance.BattleTechGame.DataManager.AbilityDefs.TryGet(abilityName, out var ability)) {
               description += $"\n    - {new Localize.Text(ability.Description.Name).ToString()}";
