@@ -47,7 +47,24 @@ namespace CustomPilotProgression {
     }
     public class Settings {
       public bool debugLog { get; set; } = true;
-      public string GeneratorVersion { get; set; } = "0.0.0.1";
+      public string ChangedChar = "^";
+      public string ChangedCharColor = "yellow";
+      public string ChangedColor = "#C1FF33FF";
+      [JsonIgnore]
+      private Color? f_ChangedColor = new UnityEngine.Color?();
+      [JsonIgnore]
+      public Color changedColor {
+        get {
+          if(f_ChangedColor.HasValue == false) {
+            if(UnityEngine.ColorUtility.TryParseHtmlString(this.ChangedColor, out var tmpcol)) {
+              f_ChangedColor = tmpcol;
+            } else {
+              f_ChangedColor = UnityEngine.Color.magenta;
+            }
+          }
+          return f_ChangedColor.Value;
+        }
+      }
       public string LevelingBackColor = "#3366FF";
       [JsonIgnore]
       private Color? f_LevelingBackColor = new UnityEngine.Color?();
@@ -131,6 +148,17 @@ namespace CustomPilotProgression {
                 PilotWeaponLevelingDef def = PilotWeaponLevelingDef.FromJSON(File.ReadAllText(entry.Value.FilePath));
                 Log.M?.WL(1, "id:" + def.Description.Id);
                 def.Register();
+              } catch(Exception e) {
+                Log.M?.TWL(0, e.ToString(), true);
+              }
+            }
+          } else if(customResource.Key == "WeaponProgressionGenerator") {
+            foreach(var entry in customResource.Value) {
+              try {
+                Log.M?.WL(1, entry.Value.FilePath);
+                WeaponProgressionGenerator def = JsonConvert.DeserializeObject<WeaponProgressionGenerator>(File.ReadAllText(entry.Value.FilePath));
+                Log.M?.WL(1, "id:" + def.id);
+                Core.settings.pilotGenerators.Add(def);
               } catch(Exception e) {
                 Log.M?.TWL(0, e.ToString(), true);
               }

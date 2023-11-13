@@ -229,7 +229,7 @@ namespace CustomPilotProgression {
     public string id = string.Empty;
     [Key(2)]
     public float experience = 0f;
-    [IgnoreMember]
+    [IgnoreMember,JsonIgnore]
     public float experience_pending = float.NaN;
     [Key(3)]
     public float experience_cap = 0f;
@@ -251,9 +251,9 @@ namespace CustomPilotProgression {
     public string id = string.Empty;
     [Key(1)]
     public Dictionary<string, WeaponProgressionItem> progression = new Dictionary<string, WeaponProgressionItem>();
-    [Key(2)]
+    [Key(2), JsonIgnore]
     public bool changed = false;
-    [Key(3)]
+    [Key(3), JsonIgnore]
     public int version_hash = 0;
     public void Merge(PilotWeaponsProgression weaponsProgression) {
       this.changed = weaponsProgression.changed;
@@ -327,21 +327,21 @@ namespace CustomPilotProgression {
       foreach(var leveling in pilot_exp.progression) {
         if(PilotWeaponLevelingDef.dataManager.TryGetValue(leveling.Key, out var levelingDef) == false) { continue; }
         var levelDef = levelingDef.GetLevel(leveling.Value.experience);
-        levelDef.LevelDef.dataManager = UnityGameInstance.BattleTechGame.DataManager;
+        if(levelDef.LevelDef.dataManager == null) levelDef.LevelDef.dataManager = UnityGameInstance.BattleTechGame.DataManager;
         result.Add(levelDef.LevelDef);
       }
       return result;
     }
-    public static List<EffectData> GetProgressionEffects(this PilotDef pilot) {
-      List<EffectData> result = new List<EffectData>();
-      HashSet<UpgradeDef> levels = pilot.GetProgressionLevels();
-      foreach(var level in levels) {
-        foreach(var effect in level.statusEffects) {
-          result.Add(effect);
-        }
-      }
-      return result;
-    }
+    //public static List<EffectData> GetProgressionEffects(this PilotDef pilot) {
+    //  List<EffectData> result = new List<EffectData>();
+    //  HashSet<UpgradeDef> levels = pilot.GetProgressionLevels();
+    //  foreach(var level in levels) {
+    //    foreach(var effect in level.statusEffects) {
+    //      result.Add(effect);
+    //    }
+    //  }
+    //  return result;
+    //}
     public static void Merge(this PilotDef pilotDef, PilotWeaponsProgression progression) {
       if(PilotsWeaponsProgression.instance.data.TryGetValue(pilotDef.Description.Id, out var result) == false) {
         PilotsWeaponsProgression.instance.data.Add(pilotDef.Description.Id, progression);
@@ -719,6 +719,90 @@ namespace CustomPilotProgression {
       }
     }
   }
+  [HarmonyPatch(typeof(Mech), "InitStats")]
+  public static class Mech_InitStats {
+    public static void Prefix(Mech __instance) {
+      Log.M?.TWL(0, $"Mech.InitStats {__instance.PilotableActorDef.Description.Id}");
+      if(__instance.Combat.IsLoadingFromSave == false) { AbstractActor_InitStats.Postfix(__instance); }
+    }
+  }
+  [HarmonyPatch(typeof(Vehicle), "InitStats")]
+  public static class Vehicle_InitStats {
+    public static void Prefix(Vehicle __instance) {
+      Log.M?.TWL(0, $"Vehicle.InitStats {__instance.PilotableActorDef.Description.Id}");
+      if(__instance.Combat.IsLoadingFromSave == false) { AbstractActor_InitStats.Postfix(__instance); }
+    }
+  }
+  [HarmonyPatch(typeof(Turret), "InitStats")]
+  public static class Turret_InitStats {
+    public static void Prefix(Turret __instance) {
+      Log.M?.TWL(0, $"Turret.InitStats {__instance.PilotableActorDef.Description.Id}");
+      if(__instance.Combat.IsLoadingFromSave == false) { AbstractActor_InitStats.Postfix(__instance); }
+    }
+  }
+  [HarmonyPatch(typeof(AbstractActor), "InitAbilities")]
+  public static class AbstractActor_InitAbilities {
+    public static void Prefix(AbstractActor __instance) {
+      Log.M?.TWL(0, $"AbstractActor.InitAbilities {__instance.PilotableActorDef.Description.Id}");
+      try {
+        var levels = __instance.GetPilot().pilotDef.GetProgressionLevels();
+        foreach(var level in levels) {
+          level.AbilityDefs.Clear(); //что бы компонент не попал куда не надо
+        }
+      }catch(Exception e) {
+        Log.M?.TWL(0, e.ToString(), true);
+        SimGameState.logger.LogException(e);
+      }
+    }
+    public static void Postfix(AbstractActor __instance) {
+      try {
+        var levels = __instance.GetPilot().pilotDef.GetProgressionLevels();
+        foreach(var level in levels) { level.ForceRefreshAbilityDefs(); }
+      } catch(Exception e) {
+        Log.M?.TWL(0, e.ToString(), true);
+        SimGameState.logger.LogException(e);
+      }
+    }
+  }
+  [HarmonyPatch(typeof(AbstractActor), "InitStats")]
+  public static class AbstractActor_InitStats {
+    public static void Postfix(AbstractActor __instance) {
+      Log.M?.TWL(0, $"AbstractActor.InitStats {__instance.PilotableActorDef.Description.Id}");
+      try {
+        Log.M?.WL(1, $"pilot {__instance.GetPilot().pilotDef.Description.Id}");
+        var levels = __instance.GetPilot().pilotDef.GetProgressionLevels();
+        foreach(var level in levels) {
+          MechComponent mechComponent = null;
+          if(__instance.Combat.DataManager.UpgradeDefs.Exists(level.Description.Id) == false) { continue; }
+          if(__instance is Mech mech) {
+            var mcref = new MechComponentRef(level.Description.Id, string.Empty, ComponentType.Upgrade, ChassisLocations.None);
+            mcref.dataManager = __instance.Combat.DataManager;
+            mcref.RefreshComponentDef();
+            mechComponent = new MechComponent(mech,__instance.Combat, mcref, __instance.allComponents.Count.ToString());
+            __instance.allComponents.Add(mechComponent);
+          } else if(__instance is Vehicle vehicle) {
+            var vcref = new VehicleComponentRef(level.Description.Id, string.Empty, ComponentType.Upgrade, VehicleChassisLocations.None);
+            vcref.dataManager = __instance.Combat.DataManager;
+            vcref.RefreshComponentDef();
+            mechComponent = new MechComponent(vehicle, __instance.Combat, vcref, __instance.allComponents.Count.ToString());
+            __instance.allComponents.Add(mechComponent);
+          } else if(__instance is Turret turret) {
+            var tref = new TurretComponentRef(level.Description.Id, string.Empty, ComponentType.Upgrade, VehicleChassisLocations.None);
+            tref.dataManager = __instance.Combat.DataManager;
+            tref.RefreshComponentDef();
+            mechComponent = new MechComponent(turret, __instance.Combat, tref, __instance.allComponents.Count.ToString());
+          }
+          if(mechComponent != null) {
+            Log.M?.WL(2, $"exp component:{mechComponent.Description.Id}");
+            __instance.allComponents.Add(mechComponent);
+          }
+        }
+      } catch(Exception e) {
+        Log.M?.TWL(0, e.ToString(), true);
+        SimGameState.logger.LogException(e);
+      }
+    }
+  }
   [HarmonyPatch(typeof(Pilot), "InitAbilities")]
   [HarmonyPatch(new Type[] { typeof(bool), typeof(bool) })]
   [HarmonyAfter("ca.gnivler.BattleTech.Abilifier")]
@@ -752,38 +836,38 @@ namespace CustomPilotProgression {
       }
     }
   }
-  [HarmonyPatch(typeof(Pilot), "ApplyPassiveAbilities")]
-  [HarmonyPatch(new Type[] { typeof(int) })]
-  public static class Pilot_ApplyPassiveAbilities {
-    static void Postfix(Pilot __instance, int stackItemUID) {
-      Log.M?.TWL(0, $"Pilot.ApplyPassiveAbilities {__instance.Description.Id}");
-      try {
-        var levels = __instance.pilotDef.GetProgressionLevels();
-        if(__instance.ParentActor == null) {
-          foreach(var level in levels) {
-            foreach(var effectData in level.statusEffects) {
-              if(effectData.effectType == EffectType.StatisticEffect && effectData.statisticData.targetCollection == StatisticEffectData.TargetCollection.Pilot) {
-                Variant variant = new Variant(System.Type.GetType(effectData.statisticData.modType));
-                variant.SetValue(effectData.statisticData.modValue);
-                variant.statName = effectData.statisticData.statName;
-                __instance.statCollection.ModifyStatistic(__instance.GUID, stackItemUID, effectData.statisticData.statName, effectData.statisticData.operation, variant);
-              }
-            }
-          }
-        } else {
-          foreach(var level in levels) {
-            foreach(var effectData in level.statusEffects) {
-              if((effectData.effectType == EffectType.StatisticEffect) && (effectData.targetingData.effectTriggerType == EffectTriggerType.Passive)) {
-                Log.M?.WL(1,$"level:{level.Description.Id} effect:{effectData.Description.Id}");
-                __instance.Combat.EffectManager.CreateEffect(effectData, level.Description.Id, stackItemUID, __instance.ParentActor, __instance.ParentActor, new WeaponHitInfo(), 0);
-              }
-            }
-          }
-        }
-      } catch(Exception e) {
-        Log.M?.TWL(0, e.ToString(), true);
-        SimGameState.logger.LogException(e);
-      }
-    }
-  }
+  //[HarmonyPatch(typeof(Pilot), "ApplyPassiveAbilities")]
+  //[HarmonyPatch(new Type[] { typeof(int) })]
+  //public static class Pilot_ApplyPassiveAbilities {
+  //  static void Postfix(Pilot __instance, int stackItemUID) {
+  //    Log.M?.TWL(0, $"Pilot.ApplyPassiveAbilities {__instance.Description.Id}");
+  //    try {
+  //      var levels = __instance.pilotDef.GetProgressionLevels();
+  //      if(__instance.ParentActor == null) {
+  //        foreach(var level in levels) {
+  //          foreach(var effectData in level.statusEffects) {
+  //            if(effectData.effectType == EffectType.StatisticEffect && effectData.statisticData.targetCollection == StatisticEffectData.TargetCollection.Pilot) {
+  //              Variant variant = new Variant(System.Type.GetType(effectData.statisticData.modType));
+  //              variant.SetValue(effectData.statisticData.modValue);
+  //              variant.statName = effectData.statisticData.statName;
+  //              __instance.statCollection.ModifyStatistic(__instance.GUID, stackItemUID, effectData.statisticData.statName, effectData.statisticData.operation, variant);
+  //            }
+  //          }
+  //        }
+  //      } else {
+  //        foreach(var level in levels) {
+  //          foreach(var effectData in level.statusEffects) {
+  //            if((effectData.effectType == EffectType.StatisticEffect) && (effectData.targetingData.effectTriggerType == EffectTriggerType.Passive)) {
+  //              Log.M?.WL(1,$"level:{level.Description.Id} effect:{effectData.Description.Id}");
+  //              __instance.Combat.EffectManager.CreateEffect(effectData, level.Description.Id, stackItemUID, __instance.ParentActor, __instance.ParentActor, new WeaponHitInfo(), 0);
+  //            }
+  //          }
+  //        }
+  //      }
+  //    } catch(Exception e) {
+  //      Log.M?.TWL(0, e.ToString(), true);
+  //      SimGameState.logger.LogException(e);
+  //    }
+  //  }
+  //}
 }

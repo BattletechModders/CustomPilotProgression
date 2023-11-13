@@ -18,6 +18,7 @@ namespace CustomPilotProgression {
     public void OnPointerClick(PointerEventData eventData) {
       Log.M?.TWL(0,$"UICustomProgression.OnPointerClick",true);
       pilot_exp.changed = false;
+      parent.Refresh();
       background.color = color0;
       try {
         SGBarracksMWLevelingPanel.PooledInstantine().SetPilot(parent.Pilot.pilotDef);
@@ -37,7 +38,7 @@ namespace CustomPilotProgression {
     private float t = 0f;
     private float delta = 1f;
     private static Color color0 = new Color(0f, 0f, 0f, 0f);
-    private static Color color1 = new Color(1f, 0f, 0f, 1f);
+    //private static Color color1 = new Color(1f, 0f, 0f, 1f);
     public void Update() {
       if(pilot_exp == null) { return; }
       if(parent == null) { return; }
@@ -46,7 +47,7 @@ namespace CustomPilotProgression {
         this.OnPointerClick(null);
       }
       if(pilot_exp.changed == false) { return; }
-      background.color = Color.Lerp(color0, color1, t);
+      background.color = Color.Lerp(color0, Core.settings.changedColor, t);
       t += Time.deltaTime * delta;
       if(t > 1f) { t = 1f; delta = -1f; }
       if(t < 0f) { t = 0f; delta = 1f; }
@@ -87,8 +88,8 @@ namespace CustomPilotProgression {
           }
         }
         header_levelings.Sort((a, b) => { return a.leveling.HeaderChar.CompareTo(b.leveling.HeaderChar); });
-        string header = string.Empty;
-        string description = string.Empty;
+        string header = pilot_exp.changed ? $"<color={Core.settings.ChangedCharColor}>{Core.settings.ChangedChar.Substring(0,1)}</color>":string.Empty;
+        string description = pilot_exp.changed?"__/CPP.CHANGED_DESCRIPTION/__\n":string.Empty;
         foreach(var hlevel in header_levelings) {
           var levelDef = hlevel.leveling.GetLevel(hlevel.exp, out var next_level, out var max_level);
           if(levelDef == null) { continue; }
@@ -119,6 +120,7 @@ namespace CustomPilotProgression {
           header += $"<color={hlevel.leveling.Color}>{hlevel.leveling.HeaderChar.Substring(0,1)}</color>";
           header += $"<color={levelDef.Color}>{levelDef.HeaderChar.Substring(0, 1)}</color>";
         }
+        description += "\n__/CPP.TOOLTIP_HELP/__";
         BaseDescriptionDef tooltip = new BaseDescriptionDef(__instance.pilot.pilotDef.Description.Id, "__/CPP.WEAPON_LEVELS/__", description, string.Empty);
         __instance.ExpertiseTooltip.SetDefaultStateData(TooltipUtilities.GetStateDataFromObject(tooltip));
         __instance.expertise.SetText(header);

@@ -105,8 +105,8 @@
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="AfterBuild">
-    <Copy SourceFiles="$(TargetPath);Readme.txt;mod.json;Localization.json" DestinationFolder="$(BattleTechGameDir)\Mods\Core\CustomPilotProgression" Condition="'$(BattleTechGameDir)' != '' And Exists('$(BattleTechGameDir)\Mods\Core\CustomPilotProgression')" />
-    <Copy SourceFiles="$(TargetPath);Readme.txt;mod.json;Localization.json" DestinationFolder="$(BattleTechGameDir)\Mods_CBDE\Core\CustomPilotProgression" Condition="'$(BattleTechGameDir)' != '' And Exists('$(BattleTechGameDir)\Mods_CBDE\Core\CustomPilotProgression')" />
-    <Copy SourceFiles="$(TargetPath);Readme.txt;mod.json;Localization.json" DestinationFolder="$(RogueTechRepo)\Core\CustomPilotProgression" Condition="'$(RogueTechRepo)' != '' And Exists('$(RogueTechRepo)\Core\CustomPilotProgression')" />
+    <Copy SourceFiles="$(TargetPath);..\Readme.txt;mod.json;Localization.json" DestinationFolder="$(BattleTechGameDir)\Mods\Core\CustomPilotProgression" Condition="'$(BattleTechGameDir)' != '' And Exists('$(BattleTechGameDir)\Mods\Core\CustomPilotProgression')" />
+    <Copy SourceFiles="$(TargetPath);..\Readme.txt;mod.json;Localization.json" DestinationFolder="$(BattleTechGameDir)\Mods_CBDE\Core\CustomPilotProgression" Condition="'$(BattleTechGameDir)' != '' And Exists('$(BattleTechGameDir)\Mods_CBDE\Core\CustomPilotProgression')" />
+    <Copy SourceFiles="$(TargetPath);..\Readme.txt;mod.json;Localization.json" DestinationFolder="$(RogueTechRepo)\Core\CustomPilotProgression" Condition="'$(RogueTechRepo)' != '' And Exists('$(RogueTechRepo)\Core\CustomPilotProgression')" />
   </Target>
 </Project>

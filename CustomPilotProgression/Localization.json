@@ -54,5 +54,21 @@
       "CULTURE_EN_US": "No expertize",
       "CULTURE_RU_RU": "Нет экспертизы"
     }
+  },
+  {
+    "FileName": "",
+    "Name": "CPP.CHANGED_DESCRIPTION",
+    "Localization": {
+      "CULTURE_EN_US": "Level changed",
+      "CULTURE_RU_RU": "Уровень изменился"
+    }
+  },
+  {
+    "FileName": "",
+    "Name": "CPP.TOOLTIP_HELP",
+    "Localization": {
+      "CULTURE_EN_US": "Click for info",
+      "CULTURE_RU_RU": "Кликни для информации"
+    }
   }
 ]

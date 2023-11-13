@@ -15,9 +15,15 @@
     "debugLog": true,
 	"defaultGenerator":{
 		"id":"default","experience_min": 0, "experience_max": 2000, "experience_cap_min":1000, "experience_cap_max": 4000
-	}
+	},
+	"ChangedChar":"^",
+	"ChangedCharColor":"yellow",
+	"ChangedColor":"#C1FF33FF",
+	"LevelingBackColor":"#3366FF",
+	"LevelNotSelectedBackColor":"#808080",
+	"LevelSelectedBackColor":"#008000"
   },
-  "CustomResourceTypes": [ "PilotWeaponLevelingDef" ],
+  "CustomResourceTypes": [ "PilotWeaponLevelingDef", "WeaponProgressionGenerator" ],
   "Manifest": [
     {
       "Type": "SVGAsset",
@@ -30,6 +36,10 @@
     {
       "Type": "UpgradeDef",
       "Path": "weapon_levels"
+    },
+    {
+      "Type": "WeaponProgressionGenerator",
+      "Path": "exp_generators"
     }
   ]
 }
