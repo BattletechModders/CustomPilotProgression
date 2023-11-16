@@ -647,6 +647,8 @@ namespace CustomPilotProgression {
       Log.M?.TWL(0, $"Contract.CompleteContract");
       try {
         if(__instance.State != Contract.ContractState.InProgress) { return; }
+        CombatGameState combat = __instance.BattleTechGame.Combat;
+        combat.SanitizeLeveling();
         HashSet<string> pilotIds = new HashSet<string>();
         if(UnityGameInstance.BattleTechGame.Simulation != null) {
           foreach(var pilot in UnityGameInstance.BattleTechGame.Simulation.PilotRoster) {
@@ -654,7 +656,6 @@ namespace CustomPilotProgression {
           }
           pilotIds.Add(UnityGameInstance.BattleTechGame.Simulation.commander.pilotDef.Description.Id);
         }
-        CombatGameState combat = __instance.BattleTechGame.Combat;
         foreach(var actor in combat.AllActors) {
           if(PilotsWeaponsProgression.instance.data.TryGetValue(actor.GetPilot().pilotDef.Description.Id, out var progression) == false){ continue; }
           if(pilotIds.Contains(actor.GetPilot().pilotDef.Description.Id)) {
@@ -766,6 +767,26 @@ namespace CustomPilotProgression {
   }
   [HarmonyPatch(typeof(AbstractActor), "InitStats")]
   public static class AbstractActor_InitStats {
+    private static Dictionary<AbstractActor, HashSet<MechComponent>> sanitizeLevelingComponents = new Dictionary<AbstractActor, HashSet<MechComponent>>();
+    public static void SanitizeLeveling(this AbstractActor unit) {
+      Log.M?.TWL(0, $"AbstractActor.SanitizeLeveling {unit.PilotableActorDef.Description.Id}");
+      if(sanitizeLevelingComponents.TryGetValue(unit, out var list)) {
+        foreach(var mechComponent in list) {
+          if(unit.allComponents.Remove(mechComponent)) {
+            Log.M?.WL(1, $"exp component:{mechComponent.Description.Id}");
+          }
+        }
+        sanitizeLevelingComponents.Remove(unit);
+      }
+    }
+    public static void SanitizeLeveling(this CombatGameState combat) {
+      List<AbstractActor> actors = new List<AbstractActor>();
+      actors.AddRange(sanitizeLevelingComponents.Keys);
+      foreach(var unit in actors) {
+        unit.SanitizeLeveling();
+      }
+      sanitizeLevelingComponents.Clear();
+    }
     public static void Postfix(AbstractActor __instance) {
       Log.M?.TWL(0, $"AbstractActor.InitStats {__instance.PilotableActorDef.Description.Id}");
       try {
@@ -795,6 +816,8 @@ namespace CustomPilotProgression {
           if(mechComponent != null) {
             Log.M?.WL(2, $"exp component:{mechComponent.Description.Id}");
             __instance.allComponents.Add(mechComponent);
+            if(sanitizeLevelingComponents.ContainsKey(__instance) == false) { sanitizeLevelingComponents[__instance] = new HashSet<MechComponent>(); }
+            sanitizeLevelingComponents[__instance].Add(mechComponent);
           }
         }
       } catch(Exception e) {
