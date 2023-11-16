@@ -741,6 +741,31 @@ namespace CustomPilotProgression {
       if(__instance.Combat.IsLoadingFromSave == false) { AbstractActor_InitStats.Postfix(__instance); }
     }
   }
+  [HarmonyPatch(typeof(Mech), "ToMechDef")]
+  [HarmonyBefore("MechEngineer.Features.PlaceholderEffects")]
+  public static class Mech_ToMechDef {
+    public static void Prefix(Mech __instance) {
+      Log.M?.TWL(0, $"Mech.ToMechDef prefix {__instance.PilotableActorDef.Description.Id}");
+      try {
+        __instance.SanitizeLeveling();
+      }catch(Exception e) {
+        Log.M?.TWL(0,e.ToString());
+        Mech.logger.LogException(e);
+      }
+    }
+    public static void Postfix(Mech __instance, ref MechDef __result) {
+      Log.M?.TWL(0, $"Mech.ToMechDef postfix {__instance.PilotableActorDef.Description.Id}");
+      try {
+        Log.M?.WL(1, $"inventory:");
+        foreach(var mechComponent in __result.Inventory) {
+          Log.M?.WL(1, $"{mechComponent.ComponentDefID}:{mechComponent.MountedLocation}");
+        }
+      } catch(Exception e) {
+        Log.M?.TWL(0, e.ToString());
+        Mech.logger.LogException(e);
+      }
+    }
+  }
   [HarmonyPatch(typeof(AbstractActor), "InitAbilities")]
   public static class AbstractActor_InitAbilities {
     public static void Prefix(AbstractActor __instance) {
@@ -769,11 +794,11 @@ namespace CustomPilotProgression {
   public static class AbstractActor_InitStats {
     private static Dictionary<AbstractActor, HashSet<MechComponent>> sanitizeLevelingComponents = new Dictionary<AbstractActor, HashSet<MechComponent>>();
     public static void SanitizeLeveling(this AbstractActor unit) {
-      Log.M?.TWL(0, $"AbstractActor.SanitizeLeveling {unit.PilotableActorDef.Description.Id}");
       if(sanitizeLevelingComponents.TryGetValue(unit, out var list)) {
+        Log.M?.TWL(0, $"AbstractActor.SanitizeLeveling {unit.PilotableActorDef.Description.Id}:{unit.PilotableActorDef.GUID}");
         foreach(var mechComponent in list) {
           if(unit.allComponents.Remove(mechComponent)) {
-            Log.M?.WL(1, $"exp component:{mechComponent.Description.Id}");
+            Log.M?.WL(1, $"remove exp component:{mechComponent.Description.Id}");
           }
         }
         sanitizeLevelingComponents.Remove(unit);
