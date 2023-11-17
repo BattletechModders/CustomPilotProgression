@@ -748,17 +748,27 @@ namespace CustomPilotProgression {
       Log.M?.TWL(0, $"Mech.ToMechDef prefix {__instance.PilotableActorDef.Description.Id}");
       try {
         __instance.SanitizeLeveling();
-      }catch(Exception e) {
+        Log.M?.WL(1, $"inventory:");
+        foreach(var mechComponent in __instance.allComponents) {
+          Log.M?.WL(2, $"{mechComponent.defId} guid:{mechComponent.GUID} location:{mechComponent.Location} simguid:{mechComponent.baseComponentRef.SimGameUID}");
+        }
+      } catch(Exception e) {
         Log.M?.TWL(0,e.ToString());
         Mech.logger.LogException(e);
       }
     }
     public static void Postfix(Mech __instance, ref MechDef __result) {
-      Log.M?.TWL(0, $"Mech.ToMechDef postfix {__instance.PilotableActorDef.Description.Id}");
+      Log.M?.TWL(0, $"Mech.ToMechDef postfix {__instance.PilotableActorDef.Description.Id}:{__instance.PilotableActorDef.GUID}:{__instance.GetHashCode()}");
       try {
         Log.M?.WL(1, $"inventory:");
+        List<MechComponentRef> inventory = new List<MechComponentRef>();
         foreach(var mechComponent in __result.Inventory) {
-          Log.M?.WL(1, $"{mechComponent.ComponentDefID}:{mechComponent.MountedLocation}");
+          if((string.IsNullOrEmpty(mechComponent.SimGameUID) == false) && (mechComponent.SimGameUID.StartsWith("REMOVE_ME_PLEASE"))) { continue; }
+          inventory.Add(mechComponent);
+        }
+        if(__result.inventory.Length != inventory.Count) { __result.inventory = inventory.ToArray(); }
+        foreach(var mechComponent in __result.Inventory) {
+          Log.M?.WL(2, $"{mechComponent.ComponentDefID}:{mechComponent.SimGameUID}:{mechComponent.MountedLocation}");
         }
       } catch(Exception e) {
         Log.M?.TWL(0, e.ToString());
@@ -769,7 +779,7 @@ namespace CustomPilotProgression {
   [HarmonyPatch(typeof(AbstractActor), "InitAbilities")]
   public static class AbstractActor_InitAbilities {
     public static void Prefix(AbstractActor __instance) {
-      Log.M?.TWL(0, $"AbstractActor.InitAbilities {__instance.PilotableActorDef.Description.Id}");
+      Log.M?.TWL(0, $"AbstractActor.InitAbilities {__instance.PilotableActorDef.Description.Id}:{__instance.PilotableActorDef.GUID}:{__instance.GetHashCode()}");
       try {
         var levels = __instance.GetPilot().pilotDef.GetProgressionLevels();
         foreach(var level in levels) {
@@ -792,25 +802,28 @@ namespace CustomPilotProgression {
   }
   [HarmonyPatch(typeof(AbstractActor), "InitStats")]
   public static class AbstractActor_InitStats {
-    private static Dictionary<AbstractActor, HashSet<MechComponent>> sanitizeLevelingComponents = new Dictionary<AbstractActor, HashSet<MechComponent>>();
     public static void SanitizeLeveling(this AbstractActor unit) {
-      if(sanitizeLevelingComponents.TryGetValue(unit, out var list)) {
-        Log.M?.TWL(0, $"AbstractActor.SanitizeLeveling {unit.PilotableActorDef.Description.Id}:{unit.PilotableActorDef.GUID}");
-        foreach(var mechComponent in list) {
-          if(unit.allComponents.Remove(mechComponent)) {
-            Log.M?.WL(1, $"remove exp component:{mechComponent.Description.Id}");
+      List<MechComponent> allComponents = new List<MechComponent>();
+      try {
+        foreach(var component in unit.allComponents) {
+          if(string.IsNullOrEmpty(component.baseComponentRef.SimGameUID)||(component.baseComponentRef.SimGameUID.StartsWith(Core.Settings.SANITIZE_ID_PREFIX) == false)) {
+            allComponents.Add(component);
           }
         }
-        sanitizeLevelingComponents.Remove(unit);
+        if(allComponents.Count != unit.allComponents.Count) {
+          unit.allComponents.Clear();
+          unit.allComponents.AddRange(allComponents);
+        }
+      }catch(Exception e) {
+        Log.M?.TWL(0, e.ToString());
+        AbstractActor.logger.LogException(e);
       }
     }
     public static void SanitizeLeveling(this CombatGameState combat) {
-      List<AbstractActor> actors = new List<AbstractActor>();
-      actors.AddRange(sanitizeLevelingComponents.Keys);
+      List<AbstractActor> actors = combat.allActors;
       foreach(var unit in actors) {
         unit.SanitizeLeveling();
       }
-      sanitizeLevelingComponents.Clear();
     }
     public static void Postfix(AbstractActor __instance) {
       Log.M?.TWL(0, $"AbstractActor.InitStats {__instance.PilotableActorDef.Description.Id}");
@@ -821,28 +834,26 @@ namespace CustomPilotProgression {
           MechComponent mechComponent = null;
           if(__instance.Combat.DataManager.UpgradeDefs.Exists(level.Description.Id) == false) { continue; }
           if(__instance is Mech mech) {
-            var mcref = new MechComponentRef(level.Description.Id, string.Empty, ComponentType.Upgrade, ChassisLocations.None);
+            var mcref = new MechComponentRef(level.Description.Id, Core.Settings.SANITIZE_ID_PREFIX, ComponentType.Upgrade, ChassisLocations.None);
             mcref.dataManager = __instance.Combat.DataManager;
             mcref.RefreshComponentDef();
-            mechComponent = new MechComponent(mech,__instance.Combat, mcref, __instance.allComponents.Count.ToString());
+            mechComponent = new MechComponent(mech,__instance.Combat, mcref, $"{Core.Settings.SANITIZE_ID_PREFIX}_{__instance.allComponents.Count.ToString()}");
             __instance.allComponents.Add(mechComponent);
           } else if(__instance is Vehicle vehicle) {
-            var vcref = new VehicleComponentRef(level.Description.Id, string.Empty, ComponentType.Upgrade, VehicleChassisLocations.None);
+            var vcref = new VehicleComponentRef(level.Description.Id, Core.Settings.SANITIZE_ID_PREFIX, ComponentType.Upgrade, VehicleChassisLocations.None);
             vcref.dataManager = __instance.Combat.DataManager;
             vcref.RefreshComponentDef();
-            mechComponent = new MechComponent(vehicle, __instance.Combat, vcref, __instance.allComponents.Count.ToString());
+            mechComponent = new MechComponent(vehicle, __instance.Combat, vcref, $"{Core.Settings.SANITIZE_ID_PREFIX}_{__instance.allComponents.Count.ToString()}");
             __instance.allComponents.Add(mechComponent);
           } else if(__instance is Turret turret) {
-            var tref = new TurretComponentRef(level.Description.Id, string.Empty, ComponentType.Upgrade, VehicleChassisLocations.None);
+            var tref = new TurretComponentRef(level.Description.Id, Core.Settings.SANITIZE_ID_PREFIX, ComponentType.Upgrade, VehicleChassisLocations.None);
             tref.dataManager = __instance.Combat.DataManager;
             tref.RefreshComponentDef();
-            mechComponent = new MechComponent(turret, __instance.Combat, tref, __instance.allComponents.Count.ToString());
+            mechComponent = new MechComponent(turret, __instance.Combat, tref, $"{Core.Settings.SANITIZE_ID_PREFIX}_{__instance.allComponents.Count.ToString()}");
           }
           if(mechComponent != null) {
             Log.M?.WL(2, $"exp component:{mechComponent.Description.Id}");
             __instance.allComponents.Add(mechComponent);
-            if(sanitizeLevelingComponents.ContainsKey(__instance) == false) { sanitizeLevelingComponents[__instance] = new HashSet<MechComponent>(); }
-            sanitizeLevelingComponents[__instance].Add(mechComponent);
           }
         }
       } catch(Exception e) {

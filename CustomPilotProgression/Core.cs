@@ -46,6 +46,7 @@ namespace CustomPilotProgression {
       public float experience_cap_max { get; set; } = 0f;
     }
     public class Settings {
+      public static readonly string SANITIZE_ID_PREFIX = "REMOVE_ME_PLEASE";
       public bool debugLog { get; set; } = true;
       public string ChangedChar = "^";
       public string ChangedCharColor = "yellow";
