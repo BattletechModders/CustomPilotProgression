@@ -54,6 +54,9 @@
     <Reference Include="CustomPrewarm">
       <HintPath>$(BattleTechGameDir)\Mods\Core\CustomPrewarm\CustomPrewarm.dll</HintPath>
     </Reference>
+    <Reference Include="CustomUnits">
+      <HintPath>..\..\..\Mods\Core\CustomUnits\CustomUnits.dll</HintPath>
+    </Reference>
     <Reference Include="InControl">
       <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\InControl.dll</HintPath>
     </Reference>
@@ -90,6 +93,7 @@
   <ItemGroup>
     <Compile Include="Core.cs" />
     <Compile Include="Log.cs" />
+    <Compile Include="PilotKillsStatistic.cs" />
     <Compile Include="ProgressionDef.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UI.cs" />

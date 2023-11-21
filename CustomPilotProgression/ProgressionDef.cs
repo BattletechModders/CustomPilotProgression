@@ -561,6 +561,7 @@ namespace CustomPilotProgression {
         } else {
           pilotsWeaponsProgression.SetValue<string>(JsonConvert.SerializeObject(PilotsWeaponsProgression.instance));
         }
+        PilotsKillsRecordsHelper.Dehydrate(__instance);
       } catch(Exception e) {
         Log.M?.TWL(0, e.ToString(), true);
         SimGameState.logger.LogException(e);
@@ -571,6 +572,7 @@ namespace CustomPilotProgression {
   public static class SimGameState_Rehydrate {
     static void Postfix(SimGameState __instance, GameInstanceSave gameInstanceSave) {
       Log.M?.TWL(0, "SimGameState.Rehydrate");
+      //Log.M?.WL(0,Environment.StackTrace);
       try {
         Statistic pilotsWeaponsProgression = __instance.CompanyStats.GetStatistic(PilotsWeaponsProgression.STATISTIC_NAME);
         if(pilotsWeaponsProgression != null) {
@@ -587,6 +589,8 @@ namespace CustomPilotProgression {
             weaponProgression.Value.experience_pending = weaponProgression.Value.experience;
           }
         }
+        PilotsKillsRecordsHelper.Rehydrate(__instance);
+        PilotsKillsRecordsHelper.ReconnectContracts(__instance);
       } catch(Exception e) {
         Log.M?.TWL(0, e.ToString(), true);
         SimGameState.logger.LogException(e);
@@ -657,8 +661,13 @@ namespace CustomPilotProgression {
           pilotIds.Add(UnityGameInstance.BattleTechGame.Simulation.commander.pilotDef.Description.Id);
         }
         foreach(var actor in combat.AllActors) {
-          if(PilotsWeaponsProgression.instance.data.TryGetValue(actor.GetPilot().pilotDef.Description.Id, out var progression) == false){ continue; }
-          if(pilotIds.Contains(actor.GetPilot().pilotDef.Description.Id)) {
+          Pilot pilot = actor.GetPilot();
+          if(pilot == null) { continue; }
+          if(pilot.Description == null) { continue; }
+          if(string.IsNullOrEmpty(pilot.Description.Id)) { continue; }
+          PilotsKillsRecordsHelper.FlushCombatKills(actor);
+          if(PilotsWeaponsProgression.instance.data.TryGetValue(pilot.Description.Id, out var progression) == false){ continue; }
+          if(pilotIds.Contains(pilot.Description.Id)) {
             foreach(var progItem in progression.progression) {
               if(float.IsNaN(progItem.Value.experience_pending)) {
                 progItem.Value.experience_pending = progItem.Value.experience;
