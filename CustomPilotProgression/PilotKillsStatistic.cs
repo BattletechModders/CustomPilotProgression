@@ -463,7 +463,7 @@ namespace CustomPilotProgression {
       //instance.killedLayout.gameObject.GetComponent<RectTransform>().anchoredPosition = new Vector2(-10f, -30f);
       instance.killedLayout.constraintCount = 12;
       instance.header = instance.killedGO.GetComponentInChildren<LocalizableText>();
-      instance.header.SetText("Невинно убиенные");
+      instance.header.SetText("__/CPP.KILLS/__");
       GameObject mechSpriteGO = UIManager.Instance.dataManager.PooledInstantiate("uixPrfIcon_AA_mechKillStamp", BattleTechResourceType.UIModulePrefabs, parent: instance.killedLayout.transform);
       mechSpriteGO.transform.localScale = Vector3.one;
       mechSpriteGO.SetActive(false);
@@ -557,19 +557,19 @@ namespace CustomPilotProgression {
       instance.inccriticalsSuccessLabel = instance.inccriticalsSuccessGO.FindObject<LocalizableText>("label", false);
       instance.inccriticalsSuccessStat = instance.inccriticalsSuccessGO.FindObject<LocalizableText>("stat", false);
 
-      instance.attacksLabel.SetText("КОЛ-ВО АТАК");
-      instance.shotsLabel.SetText("ИСХОД.ВЫСТРЕЛЫ");
-      instance.criticalsLabel.SetText("КОЛ-ВО КРИТ.");
+      instance.attacksLabel.SetText("__/CPP.ATTACKS/__");
+      instance.shotsLabel.SetText("__/CPP.SHOTS/__");
+      instance.criticalsLabel.SetText("__/CPP.CRITICALS/__");
 
-      instance.outDamageLabel.SetText("ИСХ.УРОН");
-      instance.shotsSuccessLabel.SetText("ИСХ.ТОЧНОСТЬ");
-      instance.criticalsSuccessLabel.SetText("ПРОЦ.КРИТ.");
+      instance.outDamageLabel.SetText("__/CPP.OUTBOUND_DAMAGE/__");
+      instance.shotsSuccessLabel.SetText("__/CPP.OUTBOUND_ACCURACY/__");
+      instance.criticalsSuccessLabel.SetText("__/CPP.OUTBOUND_CRITS/__");
 
-      instance.incshotsLabel.SetText("ВХОД.ВЫСТРЕЛЫ");
-      instance.incshotsSuccessLabel.SetText("ВХОД.ТОЧНОСТЬ");
+      instance.incshotsLabel.SetText("__/CPP.INBOUND_DAMAGE/__");
+      instance.incshotsSuccessLabel.SetText("__/CPP.INBOUND_ACCURACY/__");
 
-      instance.inccriticalsLabel.SetText("ВХОД.КРИТ.");
-      instance.inccriticalsSuccessLabel.SetText("ПРОЦ.КРИТ.");
+      instance.inccriticalsLabel.SetText("__/CPP.CRITICALS_LANDED/__");
+      instance.inccriticalsSuccessLabel.SetText("__/CPP.CRITICAL_PCT/__");
 
       placeholderLabel.SetText("");
       placeholderStat.SetText("");
