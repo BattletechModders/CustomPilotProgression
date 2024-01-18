@@ -96,6 +96,7 @@
     <Compile Include="PilotKillsStatistic.cs" />
     <Compile Include="ProgressionDef.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RepairHelper.cs" />
     <Compile Include="UI.cs" />
     <Compile Include="UILevelingPanel.cs" />
     <Compile Include="WeaponStatisticHelper.cs" />
